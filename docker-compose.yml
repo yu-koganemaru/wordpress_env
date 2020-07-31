@@ -1,45 +1,75 @@
+
+
+
+# ◆構築環境情報
+# APP : wordpress　最新版
+# DB : MySQL　5.6
+# DBクライアント : phpmyadmin
+# 
+# ◆参考サイト
+# ・wordpressの環境構築
+# http://bashalog.c-brains.jp/19/08/15-120000.php
+# 
+# ・docker-compose.ymlの書き方については以下を参照すると良いかも
+# https://qiita.com/zembutsu/items/9e9d80e05e36e882caaa
+# 
+
+
+
+# ----- docker-compose.yml ------------------------------------------------------------
+
+
+# ↓ 使用するDocker-compose のバージョン指定
 version: '2'
 
 services:
 
-  db:
-    image: mysql:5.6
-    # ↓ container_name: コンテナネーム 
-    container_name: wordpress_db
-    volumes:
-      - db_data:/var/lib/mysql
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: wordpress
-      MYSQL_USER: wordpress
-      MYSQL_PASSWORD: wordpress
-
+# ----- wordpress 本体 -----
   wordpress:
+    # ↓ 本家が配布してるっぽいwordpressのイメージ　:latestをつけて最新版を落としてきている
     image: wordpress:latest
+    # ↓ 連携するコンテナ指定　ここではDBと連携する設定
     depends_on:
       - db
-    restart: always
-    volumes:
-      - ./wp-content:/var/www/html/wp-content
+    # ↓ 連携コンテナ間で使用できる変数的なものらしい　ここではDBの情報を持たせている　よくわからん
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: wordpress
       WORDPRESS_DB_NAME: wordpress
+    # ↓ ファイルマウント設定　- ローカルファイルパス:コンテナ内ファイルパス　で設定できる。　win環境ではローカルを絶対パスにしないとうまくマウントできないっぽい
+    volumes:
+      - ./wp-content:/var/www/html/wp-content
+    # ↓ ポート設定　- "ローカルポート:コンテナ内ポート"　で設定できる。ローカルポートが他のdocker-compose.ymlと被るとエラー吐くので注意。
     ports:
       - "90:80"
 
+# ----- DB MySQL -----
+  db:
+    # ↓ DBコンテナネーム 
+    container_name: wordpress_db
+    image: mysql:5.6
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    volumes:
+      - db_data:/var/lib/mysql
+
+# ----- PhpMyadmin -----
   phpmyadmin:
     container_name: wordpress_phpmyadmin 
     image: phpmyadmin/phpmyadmin
     environment:
       - PMA_ARBITRARY=1
+      # ↓ PMA_HOST= 'DBコンテナネーム' 
       - PMA_HOST=wordpress_db
       - PMA_USER=wordpress
       - PMA_PASSWORD=wordpress
     ports:
       - 9090:80
 
+# ↓ よくわからんす
 volumes:
   db_data:
